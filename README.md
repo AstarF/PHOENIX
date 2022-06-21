@@ -8,7 +8,6 @@ document version: 0.1 2022-6-20
 
 ***
 
-[TOC]
 
 ![logo](README.assets/logo2.jpg)
 
@@ -126,7 +125,7 @@ int main(int argc, char** argv) {
 
 **Running results**
 
-![image-20220620202504995](README.assets/image-20220620202504995-1655818702389.png)
+![image-20220620202504995](README.assets/image-20220620202504995.png)
 
 ### Database query
 
