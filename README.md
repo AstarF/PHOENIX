@@ -176,7 +176,7 @@ webbench -c 5000 -t 60 http://127.0.0.1:55398/images/78.jpg
 
 **Running results**
 
-![image-20220621183805542](README.assets/image-20220621183805542-1655818727994.png)
+![image-20220621183805542](README.assets/image-20220621183805542.png)
 
 (there is a negative value at bytes/sec, which is obviously an overflow)
 
@@ -188,7 +188,7 @@ webbench -c 5000 -t 60 http://127.0.0.1:55398:55398/main
 
 **Running results**
 
-![image-20220621183210529](README.assets/image-20220621183210529-1655818722359.png)
+![image-20220621183210529](README.assets/image-20220621183210529.png)
 
 3. database query
 
