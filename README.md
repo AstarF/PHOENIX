@@ -10,7 +10,7 @@ document version: 0.1 2022-6-20
 
 [TOC]
 
-![logo](readme.assets/logo2.jpg)
+![logo](README.assets/logo2.jpg)
 
 ***
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
 After the program is started, enter ip: port number (55398 by default) /test/print in the browser to get the following results:
 
-![image-20220620195918316](readme.assets/imageasfsdf.jpg)
+![image-20220620195918316](README.assets/imageasfsdf.jpg)
 
 ### Use HTTP module
 
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
 **Running results**
 
-![image-20220620202504995](readme.assets/image-20220620202504995.png)
+![image-20220620202504995](README.assets/image-20220620202504995-1655818702389.png)
 
 ### Database query
 
@@ -176,7 +176,7 @@ webbench -c 5000 -t 60 http://127.0.0.1:55398/images/78.jpg
 
 **Running results**
 
-![image-20220621183805542](readme.assets/image-20220621183805542.png)
+![image-20220621183805542](README.assets/image-20220621183805542-1655818727994.png)
 
 (there is a negative value at bytes/sec, which is obviously an overflow)
 
@@ -188,7 +188,7 @@ webbench -c 5000 -t 60 http://127.0.0.1:55398:55398/main
 
 **Running results**
 
-![image-20220621183210529](readme.assets/image-20220621183210529.png)
+![image-20220621183210529](README.assets/image-20220621183210529-1655818722359.png)
 
 3. database query
 
@@ -198,4 +198,4 @@ webbench -c 5000 -t 60 http://127.0.0.1:55398/image/backgroundimagelist
 
 **Running results**
 
-![image-20220621194600613](readme.assets/image-20220621194600613.png)
+![image-20220621194600613](README.assets/image-20220621194600613.png)
