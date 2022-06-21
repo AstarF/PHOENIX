@@ -1,0 +1,3 @@
+/home/ubuntu/phoenix/build/CMakeFiles/rebuild_cache.dir
+/home/ubuntu/phoenix/build/CMakeFiles/phoenix_service.dir
+/home/ubuntu/phoenix/build/CMakeFiles/edit_cache.dir
