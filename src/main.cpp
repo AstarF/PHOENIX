@@ -219,7 +219,6 @@ void loadindex(px_mysql_connect* msconn, px_http_request* req, px_http_response_
 }
 
 void loadhtmlpage(px_mysql_connect* msconn, px_http_request* req, px_http_response_data* res) {
-    //cout << req->url.url <<" "<< wwwpath + "index.html"<< endl;
     if (req->url.url == "/home") {
         (*res)(wwwpath + "index.html", px_http_response_type::HTML);
     }
@@ -294,6 +293,9 @@ int main(int argc, char** argv) {
     interface_module->add_interface("home", loadhtmlpage, "get");
     interface_module->add_interface("blog", loadhtmlpage, "get");
     interface_module->add_interface("blog_xero", loadhtmlpage, "get");
+    interface_module->add_interface("blog_mine", loadhtmlpage, "get");
+    interface_module->add_interface("myworks", loadhtmlpage, "get");
+    interface_module->add_interface("blog_imgc", loadhtmlpage, "get");
 
     px_module* timeout_service = serv.create_time_event("http timout events", timeout_clear_func, 200000, 0, true, false);
     serv.time_module->add_module(timeout_service);

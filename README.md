@@ -49,6 +49,8 @@ int main(int argc, char** argv) {
     //Define your own code here
     px_http_module* test_module = serv.create_module("test");
     test_module->add_interface("print", print_hello, "get");
+    //add the modutle to top module
+    serv.interface_module->add_module(test_module);
 
     serv.run_service();
 }
