@@ -25,7 +25,6 @@ unordered_map<const char*, int px_http_request::*, px_charhash, px_charcmp> px_h
 	{"Connection",&px_http_request::connection},//连接管理，可以是Keep-Alive或close。
 	{"Content-Type",&px_http_request::content_type},//说明实现主体的媒体类型。
 	{"Cookie",&px_http_request::cookie},//Cookie。
-	{"Keep-Alive",&px_http_request::keep_a_live},//KeepAlive。
 
 	{"method",& px_http_request::method},//用户代理
 	{"user-agent",&px_http_request::user_agent},//用户代理
@@ -39,7 +38,6 @@ unordered_map<const char*, int px_http_request::*, px_charhash, px_charcmp> px_h
 	{"connection",&px_http_request::connection},//连接管理，可以是Keep-Alive或close。
 	{"content-type",&px_http_request::content_type},//说明实现主体的媒体类型。
 	{"cookie",&px_http_request::cookie},//Cookie。
-	{"leep-alive",& px_http_request::keep_a_live}//KeepAlive。
 };
 
 unordered_map<string, int px_http_request::*> px_http_map_integer = {
@@ -260,6 +258,7 @@ int px_http_request::parse_header() {
 	char* key = nullptr;
 	int ptr = index;
 	for (; index < conn->buffer_used; ++index) {
+		if (key == nullptr)conn->buffer[index] = tolower(conn->buffer[index]);
 		if (conn->buffer[index] == ':') {
 			if (key == nullptr) {
 				key = conn->buffer+ptr;
@@ -303,6 +302,7 @@ int px_http_request::parse_content() {
 		this->content.parse(conn->buffer + this->read_start_idx, this->content_length+3, conn->buffer + this->content_type);
 		this->parse_status = px_httpparse_sataus::PARSE_FINISH;
 	}else return PX_HTTP_CONTINUE;
+	//this->read_start_idx + this->content_length
 	return PX_FINE;
 }
 

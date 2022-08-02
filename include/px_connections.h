@@ -51,6 +51,7 @@ public:
 	//read buffer
 	char* buffer;
 	size_t buffer_used;
+	//size_t buffer_read;
 	size_t buffer_size;
 	//write buffer
 	char* wbuffer;

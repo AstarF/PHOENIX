@@ -7,6 +7,10 @@
 #include <string.h>
 #include <string>
 #include <unistd.h>
+#include "px_events.h"
+#include "px_worker.h"
+#include "px_locker.h"
+#include "px_signal.h"
 using namespace std;
 
 struct justinclude {
@@ -236,7 +240,7 @@ void login(px_mysql_connect* msconn, px_http_request* req, px_http_response_data
     sqlres<justinclude> queryres;
     msconn->execute_sql(buffer, queryres);
     string session_id = "fail";
-    if (queryres.list.size() > 0) {
+    if (queryres.list.size() > 0){
         memset(buffer, 0, sizeof(buffer));
         session_id = to_string(generate_sessionid(ntohl(((sockaddr_in*)&(req->conn->address))->sin_addr.s_addr)));
         sprintf(buffer, "INSERT INTO px_session(session_id,ipv4_address)VALUES (%s,'%s');", session_id.c_str(), inet_ntoa(((sockaddr_in*)&(req->conn->address))->sin_addr));
@@ -258,6 +262,44 @@ void* timeout_clear_func(px_event* evt, px_thread* pxthread, px_module* pxmodule
     px_http_resources::get_instance()->mysqlconn_pool->push_front(msconn);
     px_http_resources::get_instance()->mysql_signal->up();
     return nullptr;
+}
+
+void* remember_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg) {
+    if ((char*)arg != &PX_EVENT_BREAK) {
+        px_http_request* req = (px_http_request*)evt->data.get();
+        px_connection* conn = evt->connect;
+        sockaddr_in* addr = (sockaddr_in*)&conn->address;
+        if (req->url.type != "error" &&(req->url.type == ".html" || req->url.type == "interface")) {
+            char buffer[256];
+            sprintf(buffer, "SELECT * FROM px_visit WHERE ip = '%s' and url = '%s'", inet_ntoa((addr->sin_addr)), req->url.url.c_str());
+            sqlres<justinclude> queryres;
+            //获取数据库连接
+            px_http_resources::get_instance()->mysql_signal->down();
+            if (!evt->immediacy)px_worker::get_instance()->thread_lock->lock();
+            px_mysql_connect* msconn = px_http_resources::get_instance()->mysqlconn_pool->pop_front();
+            if (!evt->immediacy)px_worker::get_instance()->thread_lock->unlock();
+
+            msconn->execute_sql(buffer, queryres);
+            if (queryres.list.size() > 0) {
+                sprintf(buffer, "UPDATE px_visit set visit_time = now(),port = %d WHERE ip = '%s' and url = '%s'", ntohs(addr->sin_port), inet_ntoa((addr->sin_addr)), req->url.url.c_str());
+                msconn->execute_sql(buffer);
+            }
+            else {
+                sprintf(buffer, "INSERT INTO px_visit (ip,port,url) VALUES ('%s',%d,'%s')", inet_ntoa((addr->sin_addr)), ntohs(addr->sin_port), req->url.url.c_str());
+                msconn->execute_sql(buffer);
+            }
+            //归还数据库连接
+            if (!evt->immediacy)px_worker::get_instance()->thread_lock->lock();
+            px_http_resources::get_instance()->mysqlconn_pool->push_front(msconn);
+            px_http_resources::get_instance()->mysql_signal->up();
+            if (!evt->immediacy)px_worker::get_instance()->thread_lock->unlock();
+            time_t now = time(0);
+            char* dt = ctime(&now);
+            cout << "ip: " << inet_ntoa((addr->sin_addr)) << " port: " << ntohs(addr->sin_port) << " url:" << req->url.url << " time:" << dt;
+        }
+        else return arg;
+    }
+    return arg;
 }
 
 int main(int argc, char** argv) {
@@ -283,19 +325,23 @@ int main(int argc, char** argv) {
     //image_module->add_interface("test", testpost, "post");
 
     interface_module->add_module(image_module);
-
+    //phoenix dict
     interface_module->add_interface("main", loadindex, "get");
     interface_module->add_interface("about", loadindex, "get");
     interface_module->add_interface("login", loadindex, "get");
     interface_module->add_interface("control", loadindex, "get");
     interface_module->add_interface("userlogin", login, "post");
-
+    //phoenix home
     interface_module->add_interface("home", loadhtmlpage, "get");
     interface_module->add_interface("blog", loadhtmlpage, "get");
     interface_module->add_interface("blog_xero", loadhtmlpage, "get");
     interface_module->add_interface("blog_mine", loadhtmlpage, "get");
     interface_module->add_interface("myworks", loadhtmlpage, "get");
     interface_module->add_interface("blog_imgc", loadhtmlpage, "get");
+    //remember module
+    px_module* read_module = serv.get_readmodule();
+    px_module* remember_process = serv.create_process("remember process", remember_func);
+    read_module->add_module(remember_process);
 
     px_module* timeout_service = serv.create_time_event("http timout events", timeout_clear_func, 200000, 0, true, false);
     serv.time_module->add_module(timeout_service);

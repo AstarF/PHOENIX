@@ -91,6 +91,9 @@ public:
     px_module* create_time_event(const string& name, call_back_type, clock_t life_time, int priority = 0, bool immediacy = false, bool execute_once = true);
     px_module* create_dispath(const string& name, call_back_type, int priority = 0);
     px_http_module* create_module(const string& name);
+    px_module* get_readmodule();
+    px_module* get_writemodule();
+    px_module* get_acceptmodule();
     void run_service();
 public:
     px_service_module* serv_module;//service模块
@@ -127,7 +130,7 @@ unsigned long long generate_sessionid(unsigned long ip);//生成cookie
 
 /*回调函数列表
 */
-
+//void* http_read_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg);//读取新发送来的数据报
 void* http_writev_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg);//将用户connection缓冲区发送给socket
 void* http_request_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg);//根据请求生成http_request
 void* http_dispathtest_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg);//根据请求的种类送入不同的模块

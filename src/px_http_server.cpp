@@ -219,6 +219,18 @@ px_http_module* px_http_server::create_module(const string& name) {
     return mod;
 }
 
+px_module* px_http_server::get_readmodule(){
+    return this->read_module;
+}
+
+px_module* px_http_server::get_writemodule() {
+    return this->write_module;
+}
+
+px_module* px_http_server::get_acceptmodule() {
+    return this->accept_module;
+}
+
 /*初始化
 */
 int px_http_server::initsocket(int port, const char* path) {
@@ -360,6 +372,65 @@ void px_http_server::run_service() {
 
 /*回调函数列表
 */
+/*
+* 将socket收到的信息拷贝的用户connection缓冲区
+* 每次接收会重置所有可更新的计时器
+* 缓冲区不够会调用expansionbuffer进行扩容
+* 只要接收到字节就返回接受的总字节数，否则返回PX_EVENT_BREAK
+*/
+
+//读取新发送来的数据报
+void* http_read_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg) {
+    int recvtotal = 0;
+    if ((evt->connect->status == pxconn_status_type::CONNECT) && (evt->event_type == px_event_type::EV_READ)) {
+        char* buffer = evt->connect->buffer;
+        size_t& buffer_used = evt->connect->buffer_used;
+        if (buffer_used != 0) {
+            //printf("buffer_used: %d \n", buffer_used);
+            return nullptr;
+        }
+        size_t buffer_size = evt->connect->buffer_size;
+        while (true) {
+            int ret = recv(evt->connect->fd, buffer + buffer_used, buffer_size - buffer_used, 0);
+            if (ret > 0) {
+                buffer_used += ret;
+                evt->connect->update_timer();
+                //printf("theadid: %d | recv fd: %d size: %d  text:\n%s\n", pxthread->thread_index, evt->connect->fd, buffer_used, buffer);
+                recvtotal += ret;
+            }
+            if (ret == 0) {//如果recv函数在等待协议接收数据时网络中断了，那么它返回0
+                //printf("theadid: %d | recv fd: %d size: %d  text:\n%s --------------|\n", pxthread->thread_index, evt->connect->fd, buffer_used, buffer);
+                printf("when reading net interruption. \n");
+                close_connection(evt->connect);
+                return nullptr;
+            }
+            if (ret < 0) {//连接仍有，但是未继续的情况
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    //printf("theadid: %d | recv fd: %d size: %d  text:\n%s --------------|\n", pxthread->thread_index, evt->connect->fd, buffer_used, buffer);
+                    break;
+                }
+                printf("when reading net interruption. \n");
+                printf("errno: %d\n", errno);
+                close_connection(evt->connect);
+                return nullptr;
+            }
+            //buffer空间耗尽的情况
+            if (buffer_used >= buffer_size) {
+                evt->connect->expansionbuffer();
+                buffer = evt->connect->buffer;
+                buffer_size = evt->connect->buffer_size;
+                if (buffer_used >= buffer_size) {
+                    printf("no more memory! %lu\n", buffer_size);
+                    close_connection(evt->connect);
+                    return &PX_EVENT_BREAK;
+                }
+            }
+        }
+    }
+    return recvtotal > 0 ? nullptr : &PX_EVENT_BREAK;
+}
+
+
 
 /*
 * 将用户connection缓冲区发送给socket
@@ -399,7 +470,16 @@ void* http_writev_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* 
             if (ret == 0) {
                 //printf("when writing finish net continue.\n");
                 //连接断开了,销毁request和response
-                if (req->get_attr("Keep-Alive")) {
+                if (req->get_attr("connection")!=nullptr && (strcmp(req->get_attr("connection"), "keep-alive") == 0|| strcmp(req->get_attr("connection"), "Keep-Alive") == 0)) {
+                    //printf("start: %d used: %d \n", req->read_start_idx,evt->connect->buffer_used);
+                    //if (req->read_start_idx >= evt->connect->buffer_used) {
+                    //    evt->connect->clearbuffer();
+                    //}
+                    //else {
+                    //    evt->connect->buffer_read = req->read_start_idx;
+                    //    evt->connect->clearwbuffer();
+                    //}
+
                     evt->connect->clearbuffer();
                     evt->connect->read_evs->data.reset();
                     evt->connect->write_evs->data.reset();

@@ -81,10 +81,33 @@ void* accept_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* pxmod
             break;
         }
         set_file(fd, O_NONBLOCK);
-        printf("new connect socketfd |: theadid: %d accept : %d ip_digit: %u ip: %s port: %d\n", pxthread->thread_index, evt->connect->fd, ntohl(addr.sin_addr.s_addr), inet_ntoa((addr.sin_addr)), ntohs(addr.sin_port));
+        //printf("new connect socketfd |: theadid: %d accept : %d ip_digit: %u ip: %s port: %d\n", pxthread->thread_index, evt->connect->fd, ntohl(addr.sin_addr.s_addr), inet_ntoa((addr.sin_addr)), ntohs(addr.sin_port));
         evt->evt_module->module_link(evt, fd, (sockaddr*)&addr);
     }
 }
+
+/*
+* 从监听的socket套接字文件描述符上接受新的连接
+* 对于每一个新连接：会产生一个连接（connection），并根据模块配置相应的事件
+*/
+//void* accept_tcpsocket_func_multi_reactors(px_event* evt, px_thread* pxthread, px_module* pxmodule, void* arg) {
+//    while (true)//每次尽可能接受多的连接
+//    {
+//        int fd = -1;
+//        sockaddr_in addr;
+//        memset(&addr, 0, sizeof(addr));
+//        addr.sin_family = AF_INET;
+//        socklen_t addr_len = sizeof(addr);
+//        fd = accept(evt->connect->fd, (sockaddr*)&addr, &addr_len);
+//        if (fd < 0) {
+//            //--px_log::get_log_instance().write("no more connect.");
+//            break;
+//        }
+//        set_file(fd, O_NONBLOCK);
+//        //printf("new connect socketfd |: theadid: %d accept : %d ip_digit: %u ip: %s port: %d\n", pxthread->thread_index, evt->connect->fd, ntohl(addr.sin_addr.s_addr), inet_ntoa((addr.sin_addr)), ntohs(addr.sin_port
+//        evt->evt_module->module_link(evt, fd, (sockaddr*)&addr);
+//    }
+//}
 
 /*
 * 将socket收到的信息拷贝的用户connection缓冲区
@@ -107,12 +130,14 @@ void* read_tcpsocket_func(px_event* evt, px_thread* pxthread, px_module* pxmodul
                 recvtotal += ret;
             }
             if (ret == 0) {//如果recv函数在等待协议接收数据时网络中断了，那么它返回0
+                //printf("theadid: %d | recv fd: %d size: %d  text:\n%s --------------|\n", pxthread->thread_index, evt->connect->fd, buffer_used, buffer);
                 printf("when reading net interruption. \n");
                 close_connection(evt->connect);
                 return nullptr;
             }
             if (ret < 0) {//连接仍有，但是未继续的情况
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    //printf("theadid: %d | recv fd: %d size: %d  text:\n%s --------------|\n", pxthread->thread_index, evt->connect->fd, buffer_used, buffer);
                     break;
                 }
                 printf("when reading net interruption. \n");
